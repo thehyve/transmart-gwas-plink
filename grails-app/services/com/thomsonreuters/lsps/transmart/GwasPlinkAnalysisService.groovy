@@ -63,7 +63,7 @@ class GwasPlinkAnalysisService {
                 return
             }
             def name = (file as String).replace((workDir as String) + workDir.separator, '')
-            if (!(name.startsWith(analysisName) || name.startsWith(resDirName)) || name.endsWith('.bim') || name.endsWith('.bed')) {
+            if (!(name.startsWith(analysisName) || name.startsWith(resDirName))) {
                 return
             }
             zip.putNextEntry(new ZipEntry(name))
