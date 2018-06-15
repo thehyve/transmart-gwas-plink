@@ -18,7 +18,7 @@ import java.util.zip.ZipOutputStream
 import static jobs.misc.AnalysisQuartzJobAdapter.*
 
 @Transactional
-class GwasPlinkAnalysisService {
+class GwasPlinkAnalysisService implements GwasPlinkAnalysisResource {
     def grailsApplication
     def currentUserBean
     def quartzScheduler

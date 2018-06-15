@@ -5,7 +5,7 @@ import org.codehaus.groovy.grails.web.json.JSONArray
 import org.codehaus.groovy.grails.web.json.JSONObject
 
 class GwasPlinkController {
-    def gwasPlinkAnalysisService
+    GwasPlinkAnalysisResource gwasPlinkAnalysisService
 
     def show() {
     }
