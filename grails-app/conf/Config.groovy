@@ -19,4 +19,6 @@ log4j = {
             'org.springframework',
             'org.hibernate',
             'net.sf.ehcache.hibernate'
+
+    grails.spring.bean.packages = ['com.thomsonreuters.lsps.transmart.jobs']
 }

@@ -10,6 +10,7 @@ import jobs.misc.AnalysisQuartzJobAdapter
 import org.quartz.JobDataMap
 import org.quartz.JobDetail
 import org.quartz.SimpleTrigger
+import org.springframework.scheduling.annotation.Async
 
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -46,38 +47,49 @@ class GwasPlinkAnalysisService {
         }
     }
 
-    String prepareZippedResult(String jobName, String analysisName) {
+    /**
+     * Compress files to <analysisName>.zip file.
+     * @param jobName
+     * @param analysisName <analysisName>.zip
+     */
+    @Async
+    void prepareZippedResult(String jobName, String analysisName) {
         final jobWorkspace = new PlinkJobWorkspace(jobName)
         String zipFileName = "${analysisName}.zip"
+        log.info("Start creating ${zipFileName} file.")
         byte[] buffer = new byte[512 * 1024]
         File zipFile = new File(jobWorkspace.jobDir, zipFileName)
         if (zipFile.exists()) {
             zipFile.delete()
         }
         def workDir = jobWorkspace.getWorkingDir()
-        def resDirName = (jobWorkspace.getPlinkResultsDir() as String).replace((workDir as String) + workDir.separator, '')
+        def strToReplace = (workDir as String) + workDir.separator
+        def resDirName = (jobWorkspace.getPlinkResultsDir() as String).replace(strToReplace, '')
         def zip = new ZipOutputStream(new FileOutputStream(zipFile))
-        zip.setLevel(ZipOutputStream.DEFLATED);
-        workDir.eachFileRecurse { file ->
-            if (!file.isFile() || !file.canRead()) {
-                return
+        try {
+            zip.setLevel(ZipOutputStream.DEFLATED)
+            workDir.eachFileRecurse { file ->
+                if (!file.isFile() || !file.canRead()) {
+                    return
+                }
+                def name = (file as String).replace(strToReplace, '')
+                if (!(name.startsWith(analysisName) || name.startsWith(resDirName))) {
+                    return
+                }
+                zip.putNextEntry(new ZipEntry(name))
+                def bytesRead
+                def fiStream = new FileInputStream(file)
+                while ((bytesRead = fiStream.read(buffer)) != -1) {
+                    zip.write(buffer, 0, bytesRead)
+                }
+                zip.flush()
+                zip.closeEntry()
             }
-            def name = (file as String).replace((workDir as String) + workDir.separator, '')
-            if (!(name.startsWith(analysisName) || name.startsWith(resDirName))) {
-                return
-            }
-            zip.putNextEntry(new ZipEntry(name))
-            def bytesRead
-            def fiStream = new FileInputStream(file)
-            while ((bytesRead = fiStream.read(buffer)) != -1) {
-                zip.write(buffer, 0, bytesRead)
-            }
-            zip.flush()
-            zip.closeEntry()
+            log.info("${zipFileName} file has been created.")
+        } finally {
+            zip.finish()
+            zip.close()
         }
-        zip.finish()
-        zip.close()
-        return zipFileName
     }
 
     def getPreviewData(String jobName, String previewFileName, int previewRowsCount) {

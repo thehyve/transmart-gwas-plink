@@ -12,9 +12,14 @@ class GwasPlinkController {
 
     def resultOutput() {
         int previewRowsCount = (params.previewRowsCount ?: 10).toInteger()
+        def analysisName = params.analysisName as String
+        def jobName = params.jobName as String
+        gwasPlinkAnalysisService.prepareZippedResult(jobName, analysisName)
+        def previewData = gwasPlinkAnalysisService.getPreviewData(params.jobName as String, params.previewFileName as String, previewRowsCount)
+        log.info("Rendering result output.")
         [
-                previewData     : gwasPlinkAnalysisService.getPreviewData(params.jobName as String, params.previewFileName as String, previewRowsCount),
-                zipLink         : "/analysisFiles/${params.jobName}/${gwasPlinkAnalysisService.prepareZippedResult(params.jobName as String, params.analysisName as String)}",
+                previewData     : previewData,
+                zipLink         : "/analysisFiles/${params.jobName}/${analysisName}.zip",
                 previewRowsCount: previewRowsCount
         ]
     }
