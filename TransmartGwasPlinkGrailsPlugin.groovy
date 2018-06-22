@@ -3,7 +3,7 @@ import org.springframework.stereotype.Component
 
 class TransmartGwasPlinkGrailsPlugin {
     // the plugin version
-    def version = "16.2-HYVE-2"
+    def version = "16.2-EMIF-1-RC1"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.3.11 > *"
     // resources that are excluded from plugin packaging
