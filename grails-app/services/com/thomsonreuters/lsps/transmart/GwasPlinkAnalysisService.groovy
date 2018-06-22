@@ -47,37 +47,48 @@ class GwasPlinkAnalysisService {
     }
 
     String prepareZippedResult(String jobName, String analysisName) {
-        final jobWorkspace = new PlinkJobWorkspace(jobName)
+        File jobDir = new PlinkJobWorkspace(jobName).jobDir
         String zipFileName = "${analysisName}.zip"
-        byte[] buffer = new byte[512 * 1024]
-        File zipFile = new File(jobWorkspace.jobDir, zipFileName)
+        File zipFile = new File(jobDir, zipFileName)
         if (zipFile.exists()) {
             zipFile.delete()
         }
-        def workDir = jobWorkspace.getWorkingDir()
-        def resDirName = (jobWorkspace.getPlinkResultsDir() as String).replace((workDir as String) + workDir.separator, '')
-        def zip = new ZipOutputStream(new FileOutputStream(zipFile))
-        zip.setLevel(ZipOutputStream.DEFLATED);
-        workDir.eachFileRecurse { file ->
-            if (!file.isFile() || !file.canRead()) {
-                return
-            }
-            def name = (file as String).replace((workDir as String) + workDir.separator, '')
-            if (!(name.startsWith(analysisName) || name.startsWith(resDirName))) {
-                return
-            }
-            zip.putNextEntry(new ZipEntry(name))
-            def bytesRead
-            def fiStream = new FileInputStream(file)
-            while ((bytesRead = fiStream.read(buffer)) != -1) {
-                zip.write(buffer, 0, bytesRead)
-            }
-            zip.flush()
-            zip.closeEntry()
+        def fileOutputStream = new FileOutputStream(zipFile)
+        try {
+            zipOutputStream(fileOutputStream, jobName, analysisName)
+        } finally {
+            fileOutputStream.close()
         }
-        zip.finish()
-        zip.close()
         return zipFileName
+    }
+
+    void zipOutputStream(OutputStream outputStream, String jobName, String analysisName) {
+        PlinkJobWorkspace jobWorkspace = new PlinkJobWorkspace(jobName)
+        File workDir = jobWorkspace.getWorkingDir()
+        String pathTo = (workDir as String) + workDir.separator
+        String resDirName = (jobWorkspace.getPlinkResultsDir() as String).replace(pathTo, '')
+        def zip = new ZipOutputStream(outputStream)
+        byte[] buffer = new byte[512 * 1024]
+        try {
+            zip.setLevel(ZipOutputStream.DEFLATED)
+            workDir.eachFileRecurse { file ->
+                if (!file.isFile() || !file.canRead()) {
+                    return
+                }
+                def name = (file as String).replace(pathTo, '')
+                zip.putNextEntry(new ZipEntry(name))
+                def bytesRead
+                def fiStream = new FileInputStream(file)
+                while ((bytesRead = fiStream.read(buffer)) != -1) {
+                    zip.write(buffer, 0, bytesRead)
+                }
+                zip.flush()
+                zip.closeEntry()
+            }
+            zip.finish()
+        } finally {
+            zip.close()
+        }
     }
 
     def getPreviewData(String jobName, String previewFileName, int previewRowsCount) {

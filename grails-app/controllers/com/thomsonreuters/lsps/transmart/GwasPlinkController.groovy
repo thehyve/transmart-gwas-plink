@@ -6,15 +6,17 @@ import org.codehaus.groovy.grails.web.json.JSONObject
 
 class GwasPlinkController {
     def gwasPlinkAnalysisService
+    def jobsAccessChecksService
 
     def show() {
     }
 
     def resultOutput() {
         int previewRowsCount = (params.previewRowsCount ?: 10).toInteger()
+        def zipLink = "/gwasPlink/streamZip?jobName=${params.jobName}&analysisName=${params.analysisName}"
         [
                 previewData     : gwasPlinkAnalysisService.getPreviewData(params.jobName as String, params.previewFileName as String, previewRowsCount),
-                zipLink         : "/analysisFiles/${params.jobName}/${gwasPlinkAnalysisService.prepareZippedResult(params.jobName as String, params.analysisName as String)}",
+                zipLink         : zipLink,
                 previewRowsCount: previewRowsCount
         ]
     }
@@ -22,6 +24,19 @@ class GwasPlinkController {
     def scheduleJob() {
         def result = gwasPlinkAnalysisService.createAnalysisJob(params, 'GWASPlink', GwasPlinkAnalysisJob, false)
         render text: result.toString(), contentType: 'application/json'
+    }
+
+    def streamZip() {
+        String analysisName = params.analysisName
+        String jobName = params.jobName
+        if (!jobsAccessChecksService.canDownload(jobName)) {
+            render status: 403
+            return
+        }
+        response.setHeader('Content-disposition', "attachment; filename=${analysisName}.zip")
+        response.contentType = 'application/zip'
+        gwasPlinkAnalysisService.zipOutputStream(response.outputStream, jobName, analysisName)
+        response.outputStream.flush()
     }
 
     def loadScripts() {
